@@ -99,11 +99,11 @@
   </div>
 
   <div class="controls">
-    <div class="cg"><label>Alpaca Start Value</label><input type="number" id="start" value="105000" step="1000"></div>
-    <div class="cg"><label>E*Trade Value</label><input type="number" id="etrade" value="432374" step="1000"></div>
-    <div class="cg"><label>Stash Account</label><input type="number" id="stash" value="27670" step="100"></div>
-    <div class="cg"><label>Bitcoin (Coinbase)</label><input type="number" id="btc" value="19365" step="100"></div>
-    <div class="cg"><label>Pacific Life (post-tax)</label><input type="number" id="annuity" value="167000" step="1000"></div>
+    <div class="cg"><label>Alpaca Start Value</label><input type="number" id="start" value="98610" step="1000"></div>
+    <div class="cg"><label>E*Trade Value</label><input type="number" id="etrade" value="436008" step="1000"></div>
+    <div class="cg"><label>Stash Account</label><input type="number" id="stash" value="31000" step="100"></div>
+    <div class="cg"><label>Bitcoin (Coinbase)</label><input type="number" id="btc" value="18756" step="100"></div>
+    <div class="cg"><label>Pacific Life (post-tax)</label><input type="number" id="annuity" value="194000" step="1000"></div>
     <div class="cg"><label>Pacific Life growth %/yr</label><input type="number" id="annuityRate" value="10.156" step="0.1"></div>
     <div class="cg"><label>Cognizant 401(k)</label><input type="number" id="k401" value="179274" step="1000"></div>
     <div class="cg"><label>Cognizant 401k %/yr</label><input type="number" id="k401Rate" value="7.73" step="0.1"></div>
@@ -493,13 +493,13 @@ const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov
 const GOAL   = 1000000;
 
 const ACTUALS = {
-  '2026-5': -2547,   // June 2026 — BAC losses offset all other gains
-  '2026-6': -2547    // July 2026 — same
+  '2026-5': 5579,    // June 2026 actual
+  '2026-6': -2547    // July 2026 actual (BAC stop-outs dominated)
 };
 
 const GOAL_ACTUALS = {
-  '2026-5': 734000,
-  '2026-6': 751409
+  '2026-5': 734000,  // June 2026 snapshot (approx baseline)
+  '2026-6': 783696   // July 2026: E*Trade $436,008 + Coinbase $18,756 + Stash $31,000 + Alpaca $101,642 + PacLife $196,290
 };
 
 const INJECTIONS = {
