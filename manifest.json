@@ -1,0 +1,37 @@
+{
+  "name": "Trading Dashboard",
+  "short_name": "TradeDesk",
+  "description": "Wheel strategy P&L tracker, strategy map, and expert recommendations",
+  "start_url": "./dashboard.html",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#0d0d0d",
+  "theme_color": "#111111",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' rx='24' fill='%23111'/%3E%3Ctext x='96' y='130' font-size='100' text-anchor='middle'%3E%F0%9F%8E%AF%3C/text%3E%3C/svg%3E",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='64' fill='%23111'/%3E%3Ctext x='256' y='360' font-size='280' text-anchor='middle'%3E%F0%9F%8E%AF%3C/text%3E%3C/svg%3E",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["finance", "productivity"],
+  "shortcuts": [
+    {
+      "name": "P&L Chart",
+      "url": "./dashboard.html#pnl",
+      "description": "Open P&L and Road to $1M chart"
+    },
+    {
+      "name": "Strategy Map",
+      "url": "./dashboard.html#map",
+      "description": "View all 14 active strategies"
+    }
+  ]
+}

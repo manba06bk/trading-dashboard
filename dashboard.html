@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#111111">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="TradeDesk">
+<meta name="description" content="Wheel strategy P&amp;L tracker, strategy map, and expert recommendations">
+<link rel="manifest" href="manifest.json">
+<title>Trading Dashboard</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, system-ui, sans-serif; background: #0d0d0d; color: #e5e5e5; }
+
+  /* ── Tab nav ── */
+  .nav { display: flex; background: #111; border-bottom: 1px solid #222; padding: 0 16px; position: sticky; top: 0; z-index: 10; }
+  .tab-btn { padding: 14px 20px; font-size: 13px; font-weight: 600; color: #666; cursor: pointer; border: none; background: none; border-bottom: 2px solid transparent; transition: all .15s; letter-spacing: .01em; }
+  .tab-btn:hover { color: #aaa; }
+  .tab-btn.active { color: #e5e5e5; border-bottom-color: #22c55e; }
+  .tab-panel { display: none; padding: 16px; }
+  .tab-panel.active { display: block; }
+
+  /* ── Shared ── */
+  .section-title { font-size: 11px; font-weight: 700; color: #555; text-transform: uppercase; letter-spacing: .08em; margin-bottom: 10px; }
+  .green { color: #22c55e; } .blue { color: #60a5fa; } .amber { color: #fbbf24; }
+  .purple { color: #a78bfa; } .red { color: #f87171; } .orange { color: #fb923c; }
+  .teal { color: #2dd4bf; }
+
+  /* ── Tab 1: P&L ── */
+  .controls { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; background: #1a1a1a; padding: 12px; border-radius: 10px; margin-bottom: 14px; }
+  .cg label { display: block; font-size: 10px; font-weight: 700; color: #666; text-transform: uppercase; letter-spacing: .05em; margin-bottom: 3px; }
+  .cg input { width: 100%; padding: 6px 8px; border: 1px solid #2a2a2a; border-radius: 6px; font-size: 13px; background: #111; color: #e5e5e5; }
+  .legend { display: flex; gap: 12px; font-size: 11px; margin-bottom: 10px; flex-wrap: wrap; }
+  .leg { display: flex; align-items: center; gap: 5px; }
+  .dot { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
+  svg { width: 100%; display: block; }
+  .cards { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin: 12px 0; }
+  .card { background: #1a1a1a; border-radius: 8px; padding: 10px 12px; }
+  .card-label { font-size: 10px; color: #666; text-transform: uppercase; letter-spacing: .05em; margin-bottom: 4px; }
+  .card-val { font-size: 18px; font-weight: 800; }
+  table { width: 100%; border-collapse: collapse; font-size: 11px; margin-top: 8px; }
+  th { padding: 7px 5px; text-align: left; color: #555; font-size: 9px; text-transform: uppercase; border-bottom: 1px solid #222; }
+  td { padding: 6px 5px; border-bottom: 1px solid #1a1a1a; }
+  .actual td { color: #22c55e; font-weight: 700; }
+  .proj td { color: #93c5fd; }
+  .hit td { color: #fbbf24; font-weight: 800; }
+
+  /* ── Tab 2: Strategy map ── */
+  .strategy-grid { display: grid; grid-template-columns: 1fr; gap: 8px; }
+  .strat-card { background: #1a1a1a; border-radius: 10px; padding: 12px 14px; border-left: 3px solid; }
+  .strat-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px; }
+  .strat-name { font-size: 13px; font-weight: 700; }
+  .strat-badge { font-size: 9px; font-weight: 700; padding: 2px 7px; border-radius: 12px; text-transform: uppercase; letter-spacing: .05em; }
+  .strat-detail { font-size: 11px; color: #888; line-height: 1.5; }
+  .strat-detail strong { color: #bbb; }
+  .strat-tag { display: inline-block; font-size: 9px; background: #252525; color: #888; padding: 2px 6px; border-radius: 4px; margin: 2px 2px 0 0; }
+
+  .regime-header { font-size: 11px; font-weight: 700; color: #555; text-transform: uppercase; letter-spacing: .06em; margin: 14px 0 6px; border-bottom: 1px solid #222; padding-bottom: 5px; }
+
+  /* ── Tab 3: Expert view ── */
+  .rec-card { background: #1a1a1a; border-radius: 10px; padding: 14px; margin-bottom: 10px; border-left: 3px solid; }
+  .rec-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+  .rec-title { font-size: 13px; font-weight: 700; }
+  .status-badge { font-size: 9px; font-weight: 700; padding: 3px 8px; border-radius: 10px; }
+  .done   { background: #14532d; color: #4ade80; }
+  .active { background: #1e3a5f; color: #60a5fa; }
+  .next   { background: #2d1b00; color: #fbbf24; }
+  .future { background: #1f1f1f; color: #666; }
+  .rec-body { font-size: 11px; color: #888; line-height: 1.6; }
+  .rec-body strong { color: #ccc; }
+
+  .risk-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; }
+  .risk-card { background: #1a1a1a; border-radius: 8px; padding: 10px 12px; }
+  .risk-label { font-size: 10px; color: #666; text-transform: uppercase; letter-spacing: .04em; margin-bottom: 4px; }
+  .risk-val { font-size: 13px; font-weight: 700; }
+
+  h2 { font-size: 16px; font-weight: 800; margin-bottom: 4px; }
+  .sub { font-size: 11px; color: #666; margin-bottom: 14px; }
+</style>
+</head>
+<body>
+
+<div class="nav">
+  <button class="tab-btn active" data-tab="pnl">📈 P&amp;L &amp; Road to $1M</button>
+  <button class="tab-btn"        data-tab="map">🗺 Strategy Map</button>
+  <button class="tab-btn"        data-tab="expert">🧠 Expert View</button>
+</div>
+
+<!-- ══════════════ TAB 1: P&L ══════════════ -->
+<div id="tab-pnl" class="tab-panel active">
+  <h2>🎯 Road to $1,000,000</h2>
+  <div class="sub">Liquid/equity assets only · 401(k) shown separately as retirement backstop</div>
+
+  <div style="background:#1a1a1a;border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:11px;color:#777;border-left:3px solid #a78bfa;">
+    <strong style="color:#e5e5e5;">$1M Goal</strong> = E*Trade + Alpaca + Stash + BTC + Pacific Life annuity (post-tax) + premiums + injections<br>
+    <strong style="color:#34d399;">Retirement backstop</strong> = Cognizant 401(k) + Walmart 401(k) — pre-tax, not counted toward $1M goal
+  </div>
+
+  <div class="controls">
+    <div class="cg"><label>Alpaca Start Value</label><input type="number" id="start" value="105000" step="1000"></div>
+    <div class="cg"><label>E*Trade Value</label><input type="number" id="etrade" value="432374" step="1000"></div>
+    <div class="cg"><label>Stash Account</label><input type="number" id="stash" value="27670" step="100"></div>
+    <div class="cg"><label>Bitcoin (Coinbase)</label><input type="number" id="btc" value="19365" step="100"></div>
+    <div class="cg"><label>Pacific Life (post-tax)</label><input type="number" id="annuity" value="167000" step="1000"></div>
+    <div class="cg"><label>Pacific Life growth %/yr</label><input type="number" id="annuityRate" value="10.156" step="0.1"></div>
+    <div class="cg"><label>Cognizant 401(k)</label><input type="number" id="k401" value="179274" step="1000"></div>
+    <div class="cg"><label>Cognizant 401k %/yr</label><input type="number" id="k401Rate" value="7.73" step="0.1"></div>
+    <div class="cg"><label>Walmart 401(k)</label><input type="number" id="wmt401" value="176714" step="1000"></div>
+    <div class="cg"><label>Walmart 401k %/yr</label><input type="number" id="wmt401Rate" value="8.0" step="0.1"></div>
+    <div class="cg"><label>Jul–Sep Premium/mo</label><input type="number" id="p1" value="15000" step="500"></div>
+    <div class="cg"><label>Oct 2026+ Premium/mo</label><input type="number" id="p2" value="17000" step="500"></div>
+  </div>
+
+  <div class="legend">
+    <div class="leg"><div class="dot" style="background:#22c55e"></div>Actual premium</div>
+    <div class="leg"><div class="dot" style="background:#3b82f6"></div>Projected premium</div>
+    <div class="leg"><div class="dot" style="background:#fbbf24"></div>Quarterly injection</div>
+    <div class="leg"><div class="dot" style="background:#a78bfa;height:3px;border-radius:2px;width:16px;"></div>$1M goal (projected)</div>
+    <div class="leg"><div class="dot" style="background:#f97316;height:3px;border-radius:2px;width:16px;"></div>Actual portfolio</div>
+    <div class="leg"><div class="dot" style="background:#34d399;height:2px;border-radius:2px;width:16px;"></div>Total net worth (incl 401k)</div>
+  </div>
+
+  <div id="chartContainer"></div>
+  <div class="cards" id="cards"></div>
+
+  <div style="overflow-x:auto;">
+  <table>
+    <thead><tr>
+      <th>Month</th><th>Premium</th><th>Injection</th><th>Alpaca+Stash+BTC</th>
+      <th>Pacific Life</th><th>Goal (Plan)</th><th>Actual</th><th>vs Plan</th>
+      <th>Cog 401k</th><th>WMT 401k</th><th>Net Worth</th><th>Gap to $1M</th>
+    </tr></thead>
+    <tbody id="tbody"></tbody>
+  </table>
+  </div>
+</div>
+
+<!-- ══════════════ TAB 2: STRATEGY MAP ══════════════ -->
+<div id="tab-map" class="tab-panel">
+  <h2>🗺 Strategy Map</h2>
+  <div class="sub">14 active strategies across 4 market regimes</div>
+
+  <div class="regime-header">📈 Bull / Risk-On — Equity above 20DMA</div>
+  <div class="strategy-grid">
+
+    <div class="strat-card" style="border-color:#22c55e">
+      <div class="strat-header">
+        <div class="strat-name green">SPY Bull Put Spread</div>
+        <span class="strat-badge" style="background:#14532d;color:#4ade80">Active</span>
+      </div>
+      <div class="strat-detail">
+        <strong>When:</strong> SPY ≥ 20DMA · <strong>DTE:</strong> 35–65 · <strong>OTM:</strong> 7% below<br>
+        <strong>Objective:</strong> Primary equity income — largest capital deployed (~$50K)<br>
+        <span class="strat-tag">Bull put spread</span><span class="strat-tag">SPY</span><span class="strat-tag">MLEG</span>
+      </div>
+    </div>
+
+    <div class="strat-card" style="border-color:#22c55e">
+      <div class="strat-header">
+        <div class="strat-name green">QQQ Bull Put Spread</div>
+        <span class="strat-badge" style="background:#14532d;color:#4ade80">Active</span>
+      </div>
+      <div class="strat-detail">
+        <strong>When:</strong> VIX ≥ 14 · <strong>DTE:</strong> 35–65 · <strong>OTM:</strong> 7% below<br>
+        <strong>Objective:</strong> Tech equity income — high premium from QQQ's elevated IV<br>
+        <span class="strat-tag">Bull put spread</span><span class="strat-tag">QQQ</span><span class="strat-tag">MLEG</span>
+      </div>
+    </div>
+
+    <div class="strat-card" style="border-color:#3b82f6">
+      <div class="strat-header">
+        <div class="strat-name blue">BAC Bull Put Spread</div>
+        <span class="strat-badge" style="background:#1e3a5f;color:#60a5fa">Active</span>
+      </div>
+      <div class="strat-detail">
+        <strong>When:</strong> Always · <strong>DTE:</strong> 21–35 · <strong>Contracts:</strong> up to 150<br>
+        <strong>Objective:</strong> High-volume income via cheap bank options (weekly liquidity)<br>
+        <span class="strat-tag">Bull put spread</span><span class="strat-tag">BAC</span><span class="strat-tag">150 contracts</span>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="regime-header">📉 Bear / Risk-Off — Equity below 20DMA</div>
+  <div class="strategy-grid">
+
+    <div class="strat-card" style="border-color:#f87171">
+      <div class="strat-header">
+        <div class="strat-name red">SPY Bear Call Spread</div>
+        <span class="strat-badge" style="background:#3d1515;color:#f87171">Bear Mode</span>
+      </div>
+      <div class="strat-detail">
+        <strong>When:</strong> SPY ≥ 0.5% BELOW 20DMA · <strong>DTE:</strong> 35–50 · <strong>OTM:</strong> 4% above<br>
+        <strong>Objective:</strong> Income when equities are falling — complements put spreads<br>
+        <span class="strat-tag">Bear call spread</span><span class="strat-tag">SPY</span><span class="strat-tag">Jul 30+</span>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="regime-header">🏦 Bond / Treasury — TLT direction-dependent</div>
+  <div class="strategy-grid">
+
+    <div class="strat-card" style="border-color:#60a5fa">
+      <div class="strat-header">
+        <div class="strat-name blue">TLT Bull Put Spread</div>
+        <span class="strat-badge" style="background:#1e3a5f;color:#60a5fa">Active</span>
+      </div>
+      <div class="strat-detail">
+        <strong>When:</strong> TLT ≥ 20DMA (bonds rallying) · <strong>DTE:</strong> 35–50 · <strong>OTM:</strong> 5% below<br>
+        <strong>Objective:</strong> Non-correlated income; bonds independent from equities<br>
+        <span class="strat-tag">Bull put spread</span><span class="strat-tag">TLT</span><span class="strat-tag">Jul 29+</span>
+      </div>
+    </div>
+
+    <div class="strat-card" style="border-color:#fb923c">
+      <div class="strat-header">
+        <div class="strat-name orange">TLT Bear Call Spread</div>
+        <span class="strat-badge" style="background:#2d1500;color:#fb923c">Stagflation Cover</span>
+      </div>
+      <div class="strat-detail">
+        <strong>When:</strong> TLT ≥ 0.5% BELOW 20DMA · <strong>DTE:</strong> 35–50 · <strong>OTM:</strong> 3% above<br>
+        <strong>Objective:</strong> Plugs stagflation gap — income when BOTH bonds AND equities fall<br>
+        <span class="strat-tag">Bear call spread</span><span class="strat-tag">TLT</span><span class="strat-tag">Jul 31+</span>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="regime-header">🪙 Commodities / Alternative Income</div>
+  <div class="strategy-grid">
+
+    <div class="strat-card" style="border-color:#fbbf24">
+      <div class="strat-header">
+        <div class="strat-name amber">GLD Bull Put Spread</div>
+        <span class="strat-badge" style="background:#292200;color:#fbbf24">Active</span>
+      </div>
+      <div class="strat-detail">
+        <strong>When:</strong> VIX ≥ 14 (when equity VIX is elevated) · <strong>DTE:</strong> 35–50<br>
+        <strong>Objective:</strong> Gold as inflation hedge income — uncorrelated to SPY/QQQ<br>
+        <span class="strat-tag">Bull put spread</span><span class="strat-tag">GLD</span><span class="strat-tag">Jul 13+</span>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="regime-header">🎯 Equity Accumulation — Dip Buying + Covered Calls</div>
+  <div class="strategy-grid">
+
+    <div class="strat-card" style="border-color:#34d399">
+      <div class="strat-header">
+        <div class="strat-name teal">NVDA Dip Buy</div>
+        <span class="strat-badge" style="background:#0d2d1f;color:#34d399">Active</span>
+      </div>
+      <div class="strat-detail">
+        <strong>Trigger:</strong> NVDA dips 5%+ from recent high · <strong>Target:</strong> 100 shares for covered calls<br>
+        <strong>Objective:</strong> Accumulate AI leader at discounts; generates covered call income<br>
+        <span class="strat-tag">Dip buy</span><span class="strat-tag">NVDA</span><span class="strat-tag">Tranche strategy</span>
+      </div>
+    </div>
+
+    <div class="strat-card" style="border-color:#34d399">
+      <div class="strat-header">
+        <div class="strat-name teal">NVDA Covered Calls</div>
+        <span class="strat-badge" style="background:#0d2d1f;color:#34d399">Active</span>
+      </div>
+      <div class="strat-detail">
+        <strong>When:</strong> Holding NVDA shares (from dip buys) · <strong>OTM:</strong> 5–8% above<br>
+        <strong>Objective:</strong> Monetize NVDA position while holding; exits via assignment<br>
+        <span class="strat-tag">Covered call</span><span class="strat-tag">NVDA</span><span class="strat-tag">Jul 20+</span>
+      </div>
+    </div>
+
+    <div class="strat-card" style="border-color:#84cc16">
+      <div class="strat-header">
+        <div class="strat-name" style="color:#84cc16">CCJ Dip Buy</div>
+        <span class="strat-badge" style="background:#1a2d00;color:#84cc16">Active</span>
+      </div>
+      <div class="strat-detail">
+        <strong>Trigger:</strong> CCJ dips 9%+ from recent high · <strong>Cash floor:</strong> $30K protected<br>
+        <strong>Objective:</strong> Uranium exposure — nuclear energy secular growth tailwind<br>
+        <span class="strat-tag">Dip buy</span><span class="strat-tag">CCJ / Uranium</span><span class="strat-tag">Jul 22+</span>
+      </div>
+    </div>
+
+    <div class="strat-card" style="border-color:#84cc16">
+      <div class="strat-header">
+        <div class="strat-name" style="color:#84cc16">CCJ Covered Calls</div>
+        <span class="strat-badge" style="background:#1a2d00;color:#84cc16">Active</span>
+      </div>
+      <div class="strat-detail">
+        <strong>When:</strong> Holding CCJ shares (from dip buys) · <strong>OTM:</strong> 5% above<br>
+        <strong>Objective:</strong> Income while holding uranium position<br>
+        <span class="strat-tag">Covered call</span><span class="strat-tag">CCJ</span><span class="strat-tag">Jul 22+</span>
+      </div>
+    </div>
+
+    <div class="strat-card" style="border-color:#888">
+      <div class="strat-header">
+        <div class="strat-name" style="color:#aaa">F Wheel (Bala)</div>
+        <span class="strat-badge" style="background:#222;color:#888">Legacy</span>
+      </div>
+      <div class="strat-detail">
+        <strong>Strategy:</strong> Ford CSP wheel — buy on put assignment, sell covered calls<br>
+        <strong>Objective:</strong> Original strategy; income from legacy equity position<br>
+        <span class="strat-tag">CSP wheel</span><span class="strat-tag">F</span><span class="strat-tag">Since Day 1</span>
+      </div>
+    </div>
+
+    <div class="strat-card" style="border-color:#888">
+      <div class="strat-header">
+        <div class="strat-name" style="color:#aaa">WMT Wheel</div>
+        <span class="strat-badge" style="background:#222;color:#888">Legacy</span>
+      </div>
+      <div class="strat-detail">
+        <strong>Strategy:</strong> Walmart CSP wheel — same structure as F Wheel<br>
+        <strong>Objective:</strong> Income from stable large-cap retail holding<br>
+        <span class="strat-tag">CSP wheel</span><span class="strat-tag">WMT</span><span class="strat-tag">Since Day 1</span>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Guard Rails Summary -->
+  <div class="regime-header">🛡 Guard Rails</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+    <div class="risk-card"><div class="risk-label">Cash Floor</div><div class="risk-val green">$30,000</div></div>
+    <div class="risk-card"><div class="risk-label">Profit Take</div><div class="risk-val green">50% credit received</div></div>
+    <div class="risk-card"><div class="risk-label">Stop Loss</div><div class="risk-val red">2× entry credit</div></div>
+    <div class="risk-card"><div class="risk-label">VIX Floor (equity)</div><div class="risk-val amber">14</div></div>
+    <div class="risk-card"><div class="risk-label">VIX Floor (TLT)</div><div class="risk-val amber">12</div></div>
+    <div class="risk-card"><div class="risk-label">20DMA Regime Filter</div><div class="risk-val blue">All spread scripts</div></div>
+    <div class="risk-card"><div class="risk-label">Single-Instance Lock</div><div class="risk-val blue">All 14 scripts</div></div>
+    <div class="risk-card"><div class="risk-label">Config Live-Reload</div><div class="risk-val blue">No restart needed</div></div>
+  </div>
+</div>
+
+<!-- ══════════════ TAB 3: EXPERT VIEW ══════════════ -->
+<div id="tab-expert" class="tab-panel">
+  <h2>🧠 Expert View</h2>
+  <div class="sub">Portfolio analysis and improvement roadmap</div>
+
+  <!-- Current Risk Profile -->
+  <div class="section-title" style="margin-bottom:8px;">Current Risk Profile</div>
+  <div class="risk-grid" style="margin-bottom:16px;">
+    <div class="risk-card"><div class="risk-label">Strategies</div><div class="risk-val blue">14 active</div></div>
+    <div class="risk-card"><div class="risk-label">Income Streams</div><div class="risk-val green">4 uncorrelated</div></div>
+    <div class="risk-card"><div class="risk-label">Stagflation Cover</div><div class="risk-val green">✓ TLT Bear Call</div></div>
+    <div class="risk-card"><div class="risk-label">Bear Market Cover</div><div class="risk-val green">✓ SPY Bear Call</div></div>
+    <div class="risk-card"><div class="risk-label">Delta Monitor</div><div class="risk-val green">✓ Live (30 min)</div></div>
+    <div class="risk-card"><div class="risk-label">Remaining Gap</div><div class="risk-val amber">Deflationary crash</div></div>
+  </div>
+
+  <div class="section-title" style="margin-bottom:8px;">Recommendations</div>
+
+  <!-- ✅ Done -->
+  <div class="rec-card" style="border-color:#22c55e">
+    <div class="rec-header">
+      <div class="rec-title green">✅ DTE Window Optimization</div>
+      <span class="status-badge done">Done</span>
+    </div>
+    <div class="rec-body">
+      Moved all spread scripts to <strong>35–50 DTE</strong> entry (35–65 for SPY/QQQ which were already optimal). This captures the steepest part of theta decay while exiting at 21 DTE. Config files updated and <strong>live-reload wired</strong> in all 5 scripts — no restarts needed. BAC kept tighter (21–35) due to weekly liquidity.
+    </div>
+  </div>
+
+  <div class="rec-card" style="border-color:#22c55e">
+    <div class="rec-header">
+      <div class="rec-title green">✅ Portfolio Delta Monitor</div>
+      <span class="status-badge done">Done</span>
+    </div>
+    <div class="rec-body">
+      <code>portfolio_delta_monitor.py</code> runs every 30 min during market hours. Batch-fetches greeks for all open option positions. Alerts via ntfy when:
+      <br>• Net delta &gt; <strong>+200</strong> (short-put heavy — crash exposure)
+      <br>• Net delta &lt; <strong>−50</strong> (short-call heavy — rally risk)
+      <br>• Any short PUT strike within <strong>2%</strong> of current price (assignment risk)
+      <br>• Any short CALL strike within <strong>2%</strong> of current price (ITM bear call)
+      <br>Added to <code>start_all_wheels.bat</code> — auto-launches with all 14 wheels.
+    </div>
+  </div>
+
+  <!-- 🔵 Next up -->
+  <div class="rec-card" style="border-color:#fbbf24">
+    <div class="rec-header">
+      <div class="rec-title amber">⏳ USO / XLE Oil Put Spread</div>
+      <span class="status-badge next">Next Up</span>
+    </div>
+    <div class="rec-body">
+      <strong>Gap:</strong> Deflationary crash (equities, bonds, AND commodities all falling) currently produces zero income.<br>
+      <strong>Fix:</strong> Oil put spread (USO or XLE) provides a 4th uncorrelated income stream. Oil tends to fall in recessions, making it a natural complement to the bond bear call strategy.<br>
+      <strong>Structure:</strong> Same MLEG bull-put template as GLD spread. OTM 5–7% below, VIX floor 14.
+    </div>
+  </div>
+
+  <div class="rec-card" style="border-color:#fbbf24">
+    <div class="rec-header">
+      <div class="rec-title amber">⏳ Morning Regime Report (9:30 AM)</div>
+      <span class="status-badge next">Next Up</span>
+    </div>
+    <div class="rec-body">
+      Daily ntfy at 9:30 AM summarising which regime each script is operating in: SPY above/below 20DMA, TLT above/below 20DMA, VIX level, which scripts are active/idle, and any open positions approaching their strike.<br>
+      <strong>Value:</strong> Single glance every morning to know the day's setup without opening each terminal tab.
+    </div>
+  </div>
+
+  <div class="rec-card" style="border-color:#3b82f6">
+    <div class="rec-header">
+      <div class="rec-title blue">🔧 Auto-Restart Watchdog Fix</div>
+      <span class="status-badge active">Backlog</span>
+    </div>
+    <div class="rec-body">
+      Current watchdog opens a plain <code>cmd</code> window instead of a proper Windows Terminal tab when restarting crashed scripts. Fix: use <code>wt.exe new-tab</code> with matching tab color and title, same as <code>start_all_wheels.bat</code>.<br>
+      <strong>Impact:</strong> Low urgency — scripts do restart, just without the colored tab.
+    </div>
+  </div>
+
+  <div class="rec-card" style="border-color:#3b82f6">
+    <div class="rec-header">
+      <div class="rec-title blue">🔧 ntfy.sh Authentication (Pro)</div>
+      <span class="status-badge active">Backlog</span>
+    </div>
+    <div class="rec-body">
+      Once upgraded to ntfy.sh Pro, add <code>Authorization: Bearer &lt;token&gt;</code> header to all ntfy calls. This protects the topic from public access and enables message history, read receipts, and larger attachments.<br>
+      <strong>Impact:</strong> Security hardening. Low urgency until topic becomes widely known.
+    </div>
+  </div>
+
+  <div class="rec-card" style="border-color:#555">
+    <div class="rec-header">
+      <div class="rec-title" style="color:#999">💡 Single-Instance Locks (remaining scripts)</div>
+      <span class="status-badge future">Future</span>
+    </div>
+    <div class="rec-body">
+      <code>reconcile.py</code>, <code>portfolio_total_gain.py</code>, and <code>watchdog.py</code> don't yet have PID-file single-instance locks. Low risk since they're background processes unlikely to be double-launched, but worth adding for consistency.
+    </div>
+  </div>
+
+  <!-- Strategy Health Summary -->
+  <div class="section-title" style="margin: 16px 0 8px;">Income Stream Coverage Matrix</div>
+  <div style="background:#1a1a1a;border-radius:10px;padding:14px;font-size:11px;overflow-x:auto;">
+    <table style="min-width:400px;">
+      <thead>
+        <tr>
+          <th>Scenario</th>
+          <th style="color:#22c55e">Earns</th>
+          <th style="color:#f87171">Risk</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>📈 Bull market (SPY ↑, TLT ↑)</td>
+          <td style="color:#22c55e">SPY spread, QQQ spread, BAC spread, TLT spread, GLD spread</td>
+          <td style="color:#f87171">Bear calls idle</td>
+        </tr>
+        <tr>
+          <td>📉 Bear market (SPY ↓, TLT ↑)</td>
+          <td style="color:#22c55e">SPY bear call, TLT spread, BAC spread, GLD spread</td>
+          <td style="color:#f87171">SPY/QQQ put spreads idle</td>
+        </tr>
+        <tr>
+          <td>🔥 Stagflation (SPY ↓, TLT ↓)</td>
+          <td style="color:#22c55e">SPY bear call, TLT bear call, GLD spread</td>
+          <td style="color:#f87171">Reduced income — put spreads idle</td>
+        </tr>
+        <tr>
+          <td>💥 Deflation crash (everything ↓)</td>
+          <td style="color:#fbbf24">SPY bear call, TLT bear call (GLD may stop out)</td>
+          <td style="color:#f87171">⚠️ Lowest income scenario — USO/XLE would help</td>
+        </tr>
+        <tr>
+          <td>🌊 Low vol (VIX &lt; 14)</td>
+          <td style="color:#22c55e">TLT spread/bear call, BAC spread, GLD (if active)</td>
+          <td style="color:#f87171">SPY/QQQ spreads idle (VIX floor)</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+function showTab(id) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + id).classList.add('active');
+  document.querySelector('[data-tab="' + id + '"]').classList.add('active');
+  if (id === 'pnl') render();
+}
+
+// ── P&L Chart ────────────────────────────────────────────────────────────────
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const GOAL   = 1000000;
+
+const ACTUALS = {
+  '2026-5': 13978,
+  '2026-6': 9502
+};
+
+const GOAL_ACTUALS = {
+  '2026-5': 734000,
+  '2026-6': 751409
+};
+
+const INJECTIONS = {
+  '2026-8':  25000,
+  '2026-11': 25000,
+  '2027-2':  25000,
+  '2027-5':  25000,
+  '2027-8':  25000,
+  '2027-11': 25000,
+};
+
+function buildRows(startAlpaca, etradeVal, p1, p2, annuityStart, annuityRatePct, k401Start, k401RatePct, wmt401Start, wmt401RatePct) {
+  const rows = [];
+  let alpaca  = startAlpaca;
+  let annuity = annuityStart;
+  let k401    = k401Start;
+  let wmt401  = wmt401Start;
+  const ma = Math.pow(1 + annuityRatePct / 100, 1/12);
+  const mk = Math.pow(1 + k401RatePct    / 100, 1/12);
+  const mw = Math.pow(1 + wmt401RatePct  / 100, 1/12);
+
+  for (let i = 0; i < 30; i++) {
+    const d = new Date(2026, 5 + i);
+    const y = d.getFullYear(), m = d.getMonth();
+    const key = y + '-' + m;
+    const isActual  = key in ACTUALS;
+    const prem      = isActual ? ACTUALS[key] : (y === 2026 && m <= 8 ? p1 : p2);
+    const injection = INJECTIONS[key] || 0;
+    alpaca  += prem + injection;
+    annuity *= ma; k401 *= mk; wmt401 *= mw;
+    const goalAssets = alpaca + etradeVal + annuity;
+    const netWorth   = goalAssets + k401 + wmt401;
+    const actualGA   = GOAL_ACTUALS[key] != null ? GOAL_ACTUALS[key] : null;
+    rows.push({
+      label: MONTHS[m] + " '" + String(y).slice(2),
+      prem, injection, isActual, alpaca,
+      annuity: Math.round(annuity), k401: Math.round(k401), wmt401: Math.round(wmt401),
+      goalAssets: Math.round(goalAssets), netWorth: Math.round(netWorth),
+      actualGA, actualVsPlan: actualGA != null ? actualGA - Math.round(goalAssets) : null,
+      gap: Math.max(0, GOAL - goalAssets),
+    });
+    if (goalAssets >= GOAL) break;
+  }
+  return rows;
+}
+
+function drawChart(rows) {
+  const W = Math.min(window.innerWidth - 32, 700);
+  const H = 250;
+  const PAD = { top: 18, right: 56, bottom: 36, left: 52 };
+  const iW = W - PAD.left - PAD.right;
+  const iH = H - PAD.top  - PAD.bottom;
+  const maxPrem = Math.max(...rows.map(r => r.prem)) * 1.2;
+  const maxComb = Math.max(GOAL * 1.05, ...rows.map(r => r.netWorth));
+  const minComb = Math.min(...rows.map(r => r.goalAssets)) * 0.95;
+  const barW = Math.max(4, (iW / rows.length) * 0.6);
+  const bs = iW / rows.length;
+  const xP = i => PAD.left + i * bs + bs / 2;
+  const yB = v => PAD.top + iH - (v / maxPrem) * iH;
+  const yL = v => PAD.top + iH - ((v - minComb) / (maxComb - minComb)) * iH;
+
+  let s = `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">`;
+  for (let i = 0; i <= 4; i++) {
+    const y = PAD.top + (iH/4)*i;
+    s += `<line x1="${PAD.left}" y1="${y}" x2="${W-PAD.right}" y2="${y}" stroke="#222" stroke-width="1"/>`;
+    s += `<text x="${PAD.left-4}" y="${y+4}" fill="#555" font-size="9" text-anchor="end">$${((maxPrem*(1-i/4))/1000).toFixed(0)}K</text>`;
+    const rv = maxComb - (maxComb-minComb)*(i/4);
+    const rl = rv >= 1e6 ? (rv/1e6).toFixed(2)+'M' : (rv/1000).toFixed(0)+'K';
+    s += `<text x="${W-PAD.right+4}" y="${y+4}" fill="#555" font-size="9" text-anchor="start">$${rl}</text>`;
+  }
+  const gy = yL(GOAL);
+  s += `<line x1="${PAD.left}" y1="${gy}" x2="${W-PAD.right}" y2="${gy}" stroke="#fbbf24" stroke-width="1.5" stroke-dasharray="5,4"/>`;
+  s += `<text x="${W-PAD.right+4}" y="${gy-3}" fill="#fbbf24" font-size="8">$1M</text>`;
+
+  rows.forEach((r, i) => {
+    const x = xP(i) - barW/2;
+    const ph = (r.prem/maxPrem)*iH, py = PAD.top+iH-ph;
+    s += `<rect x="${x}" y="${py}" width="${barW}" height="${ph}" fill="${r.isActual?'#22c55e':'#3b82f6'}" rx="2"/>`;
+    if (r.injection > 0) {
+      const jh = (r.injection/maxPrem)*iH;
+      s += `<rect x="${x}" y="${py-jh}" width="${barW}" height="${jh}" fill="#fbbf24" rx="2"/>`;
+    }
+  });
+
+  let lp='', ds='';
+  rows.forEach((r,i)=>{ const x=xP(i),y=yL(r.goalAssets); lp+=(i?` L${x},${y}`:`M${x},${y}`); ds+=`<circle cx="${x}" cy="${y}" r="2.5" fill="#a78bfa"/>`; });
+  s+=`<path d="${lp}" stroke="#a78bfa" stroke-width="2" fill="none"/>`;s+=ds;
+
+  let ap='', ad='';
+  rows.forEach((r,i)=>{ if(r.actualGA!=null){const x=xP(i),y=yL(r.actualGA); ap+=(ap?` L${x},${y}`:`M${x},${y}`); ad+=`<circle cx="${x}" cy="${y}" r="3.5" fill="#f97316" stroke="#0d0d0d" stroke-width="1.5"/>`; }});
+  if(ap){s+=`<path d="${ap}" stroke="#f97316" stroke-width="2.5" fill="none"/>`;s+=ad;}
+
+  let np='';
+  rows.forEach((r,i)=>{ const x=xP(i),y=yL(r.netWorth); np+=(i?` L${x},${y}`:`M${x},${y}`); });
+  s+=`<path d="${np}" stroke="#34d399" stroke-width="1.5" stroke-dasharray="5,3" fill="none"/>`;
+
+  rows.forEach((r,i)=>{ s+=`<text x="${xP(i)}" y="${H-4}" fill="#555" font-size="9" text-anchor="middle">${r.label}</text>`; });
+  s+=`</svg>`;
+  document.getElementById('chartContainer').innerHTML = s;
+}
+
+function render() {
+  const v = id => +document.getElementById(id).value;
+  const rows = buildRows(v('start')+v('stash')+v('btc'), v('etrade'), v('p1'), v('p2'),
+                         v('annuity'), v('annuityRate'), v('k401'), v('k401Rate'), v('wmt401'), v('wmt401Rate'));
+  drawChart(rows);
+  const hitRow   = rows.find(r => r.goalAssets >= GOAL);
+  const goalToday = v('start')+v('stash')+v('btc')+v('etrade')+v('annuity');
+  const totalToday = goalToday + v('k401') + v('wmt401');
+  document.getElementById('cards').innerHTML = `
+    <div class="card"><div class="card-label">Jul 2026 Actual Portfolio</div><div class="card-val orange">$751,409</div></div>
+    <div class="card"><div class="card-label">$1M Goal Assets (inputs)</div><div class="card-val purple">$${goalToday.toLocaleString()}</div></div>
+    <div class="card"><div class="card-label">Retirement Accounts</div><div class="card-val teal">$${(v('k401')+v('wmt401')).toLocaleString()}</div></div>
+    <div class="card"><div class="card-label">Total Net Worth</div><div class="card-val teal">$${totalToday.toLocaleString()}</div></div>
+    <div class="card"><div class="card-label">Gap to $1M Goal</div><div class="card-val red">$${Math.max(0,GOAL-goalToday).toLocaleString()}</div></div>
+    <div class="card"><div class="card-label">$1M Hit</div><div class="card-val amber">${hitRow ? hitRow.label : '>30 mo'}</div></div>
+  `;
+  document.getElementById('tbody').innerHTML = rows.map(r => {
+    const cls = r.goalAssets >= GOAL ? 'hit' : r.isActual ? 'actual' : 'proj';
+    const ac  = r.actualGA != null ? `<span style="color:#f97316;font-weight:700">$${r.actualGA.toLocaleString()}</span>` : '—';
+    const vp  = r.actualVsPlan != null ? `<span style="color:${r.actualVsPlan>=0?'#22c55e':'#f87171'};font-weight:700">${r.actualVsPlan>=0?'+':''}$${r.actualVsPlan.toLocaleString()}</span>` : '—';
+    return `<tr class="${cls}">
+      <td>${r.label}${r.isActual?' ✅':''}</td>
+      <td>$${r.prem.toLocaleString()}</td>
+      <td>${r.injection>0?'<span style="color:#fbbf24">+$'+r.injection.toLocaleString()+'</span>':'—'}</td>
+      <td>$${r.alpaca.toLocaleString()}</td>
+      <td style="color:#fb923c">$${r.annuity.toLocaleString()}</td>
+      <td>$${r.goalAssets.toLocaleString()}</td>
+      <td>${ac}</td><td>${vp}</td>
+      <td style="color:#34d399">$${r.k401.toLocaleString()}</td>
+      <td style="color:#34d399">$${r.wmt401.toLocaleString()}</td>
+      <td style="color:#34d399">$${r.netWorth.toLocaleString()}</td>
+      <td>${r.gap>0?'$'+r.gap.toLocaleString():'🎯 HIT'}</td>
+    </tr>`;
+  }).join('');
+}
+
+// Tab switching via event listeners (more reliable than inline onclick)
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => showTab(btn.getAttribute('data-tab')));
+});
+
+['start','etrade','stash','btc','annuity','annuityRate','k401','k401Rate','wmt401','wmt401Rate','p1','p2'].forEach(id => {
+  document.getElementById(id).addEventListener('input', render);
+});
+window.addEventListener('resize', render);
+render();
+
+// Register service worker for PWA / offline support
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js')
+      .then(reg => console.log('[SW] registered', reg.scope))
+      .catch(err => console.warn('[SW] registration failed', err));
+  });
+}
+
+// Handle URL hash shortcuts from manifest shortcuts
+const hash = location.hash.replace('#','');
+if (hash && ['pnl','map','expert'].includes(hash)) showTab(hash);
+</script>
+</body>
+</html>
