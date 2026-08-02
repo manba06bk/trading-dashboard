@@ -95,7 +95,7 @@
 
   <div style="background:#1a1a1a;border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:11px;color:#777;border-left:3px solid #a78bfa;">
     <strong style="color:#e5e5e5;">$1M Goal</strong> = E*Trade + Alpaca + Stash + BTC + Pacific Life annuity (post-tax) + premiums + injections<br>
-    <strong style="color:#34d399;">Retirement backstop</strong> = Cognizant 401(k) + Walmart 401(k) — pre-tax, not counted toward $1M goal
+    <strong style="color:#34d399;">Retirement backstop</strong> = Cognizant 401(k) + Walmart 401(k) + IRA-Edge (Merrill) — pre-tax, not counted toward $1M goal
   </div>
 
   <div class="controls">
@@ -107,8 +107,10 @@
     <div class="cg"><label>Pacific Life growth %/yr</label><input type="number" id="annuityRate" value="10.156" step="0.1"></div>
     <div class="cg"><label>Cognizant 401(k)</label><input type="number" id="k401" value="179274" step="1000"></div>
     <div class="cg"><label>Cognizant 401k %/yr</label><input type="number" id="k401Rate" value="7.73" step="0.1"></div>
-    <div class="cg"><label>Walmart 401(k)</label><input type="number" id="wmt401" value="176714" step="1000"></div>
+    <div class="cg"><label>Walmart 401(k)</label><input type="number" id="wmt401" value="179295" step="1000"></div>
     <div class="cg"><label>Walmart 401k %/yr</label><input type="number" id="wmt401Rate" value="8.0" step="0.1"></div>
+    <div class="cg"><label>IRA-Edge (Merrill)</label><input type="number" id="ira" value="15171" step="100"></div>
+    <div class="cg"><label>IRA-Edge %/yr</label><input type="number" id="iraRate" value="8.5" step="0.1"></div>
     <div class="cg"><label>Jul–Sep Premium/mo</label><input type="number" id="p1" value="15000" step="500"></div>
     <div class="cg"><label>Oct 2026+ Premium/mo</label><input type="number" id="p2" value="17000" step="500"></div>
   </div>
@@ -130,7 +132,7 @@
     <thead><tr>
       <th>Month</th><th>Premium</th><th>Injection</th><th>Alpaca+Stash+BTC</th>
       <th>Pacific Life</th><th>Goal (Plan)</th><th>Actual</th><th>vs Plan</th>
-      <th>Cog 401k</th><th>WMT 401k</th><th>Net Worth</th><th>Gap to $1M</th>
+      <th>Cog 401k</th><th>WMT 401k</th><th>IRA-Edge</th><th>Net Worth</th><th>Gap to $1M</th>
     </tr></thead>
     <tbody id="tbody"></tbody>
   </table>
@@ -524,15 +526,17 @@ const INJECTIONS = {
   '2027-11': 25000,
 };
 
-function buildRows(startAlpaca, etradeVal, p1, p2, annuityStart, annuityRatePct, k401Start, k401RatePct, wmt401Start, wmt401RatePct) {
+function buildRows(startAlpaca, etradeVal, p1, p2, annuityStart, annuityRatePct, k401Start, k401RatePct, wmt401Start, wmt401RatePct, iraStart, iraRatePct) {
   const rows = [];
   let alpaca  = startAlpaca;
   let annuity = annuityStart;
   let k401    = k401Start;
   let wmt401  = wmt401Start;
+  let ira     = iraStart;
   const ma = Math.pow(1 + annuityRatePct / 100, 1/12);
   const mk = Math.pow(1 + k401RatePct    / 100, 1/12);
   const mw = Math.pow(1 + wmt401RatePct  / 100, 1/12);
+  const mi = Math.pow(1 + iraRatePct     / 100, 1/12);
 
   for (let i = 0; i < 30; i++) {
     const d = new Date(2026, 5 + i);
@@ -542,14 +546,15 @@ function buildRows(startAlpaca, etradeVal, p1, p2, annuityStart, annuityRatePct,
     const prem      = isActual ? ACTUALS[key] : (y === 2026 && m <= 8 ? p1 : p2);
     const injection = INJECTIONS[key] || 0;
     alpaca  += prem + injection;
-    annuity *= ma; k401 *= mk; wmt401 *= mw;
+    annuity *= ma; k401 *= mk; wmt401 *= mw; ira *= mi;
     const goalAssets = alpaca + etradeVal + annuity;
-    const netWorth   = goalAssets + k401 + wmt401;
+    const netWorth   = goalAssets + k401 + wmt401 + ira;
     const actualGA   = GOAL_ACTUALS[key] != null ? GOAL_ACTUALS[key] : null;
     rows.push({
       label: MONTHS[m] + " '" + String(y).slice(2),
       prem, injection, isActual, alpaca,
       annuity: Math.round(annuity), k401: Math.round(k401), wmt401: Math.round(wmt401),
+      ira: Math.round(ira),
       goalAssets: Math.round(goalAssets), netWorth: Math.round(netWorth),
       actualGA, actualVsPlan: actualGA != null ? actualGA - Math.round(goalAssets) : null,
       gap: Math.max(0, GOAL - goalAssets),
@@ -617,15 +622,27 @@ function drawChart(rows) {
 function render() {
   const v = id => +document.getElementById(id).value;
   const rows = buildRows(v('start')+v('stash')+v('btc'), v('etrade'), v('p1'), v('p2'),
-                         v('annuity'), v('annuityRate'), v('k401'), v('k401Rate'), v('wmt401'), v('wmt401Rate'));
+                         v('annuity'), v('annuityRate'), v('k401'), v('k401Rate'),
+                         v('wmt401'), v('wmt401Rate'), v('ira'), v('iraRate'));
   drawChart(rows);
-  const hitRow   = rows.find(r => r.goalAssets >= GOAL);
+  const hitRow    = rows.find(r => r.goalAssets >= GOAL);
   const goalToday = v('start')+v('stash')+v('btc')+v('etrade')+v('annuity');
-  const totalToday = goalToday + v('k401') + v('wmt401');
+  const retireToday = v('k401') + v('wmt401') + v('ira');
+  const totalToday  = goalToday + retireToday;
+
+  // Most recent GOAL_ACTUALS entry for the "Latest Actual" card
+  const actualKeys = Object.keys(GOAL_ACTUALS).sort((a,b) => {
+    const [ay,am]=a.split('-').map(Number), [by,bm]=b.split('-').map(Number);
+    return ay!==by ? ay-by : am-bm;
+  });
+  const latestKey = actualKeys.slice(-1)[0];
+  const latestActual = latestKey != null ? GOAL_ACTUALS[latestKey] : null;
+  const latestLabel  = latestKey != null ? (()=>{ const d=new Date(+latestKey.split('-')[0], +latestKey.split('-')[1]); return ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][d.getMonth()]+" '"+String(d.getFullYear()).slice(2); })() : '—';
+
   document.getElementById('cards').innerHTML = `
-    <div class="card"><div class="card-label">Jul 2026 Actual Portfolio</div><div class="card-val orange">$751,409</div></div>
+    <div class="card"><div class="card-label">${latestLabel} Actual Portfolio</div><div class="card-val orange">${latestActual!=null?'$'+latestActual.toLocaleString():'n/a'}</div></div>
     <div class="card"><div class="card-label">$1M Goal Assets (inputs)</div><div class="card-val purple">$${goalToday.toLocaleString()}</div></div>
-    <div class="card"><div class="card-label">Retirement Accounts</div><div class="card-val teal">$${(v('k401')+v('wmt401')).toLocaleString()}</div></div>
+    <div class="card"><div class="card-label">Retirement Accounts</div><div class="card-val teal">$${retireToday.toLocaleString()}</div></div>
     <div class="card"><div class="card-label">Total Net Worth</div><div class="card-val teal">$${totalToday.toLocaleString()}</div></div>
     <div class="card"><div class="card-label">Gap to $1M Goal</div><div class="card-val red">$${Math.max(0,GOAL-goalToday).toLocaleString()}</div></div>
     <div class="card"><div class="card-label">$1M Hit</div><div class="card-val amber">${hitRow ? hitRow.label : '>30 mo'}</div></div>
@@ -644,6 +661,7 @@ function render() {
       <td>${ac}</td><td>${vp}</td>
       <td style="color:#34d399">$${r.k401.toLocaleString()}</td>
       <td style="color:#34d399">$${r.wmt401.toLocaleString()}</td>
+      <td style="color:#34d399">$${r.ira.toLocaleString()}</td>
       <td style="color:#34d399">$${r.netWorth.toLocaleString()}</td>
       <td>${r.gap>0?'$'+r.gap.toLocaleString():'🎯 HIT'}</td>
     </tr>`;
@@ -655,7 +673,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
   btn.addEventListener('click', () => showTab(btn.getAttribute('data-tab')));
 });
 
-['start','etrade','stash','btc','annuity','annuityRate','k401','k401Rate','wmt401','wmt401Rate','p1','p2'].forEach(id => {
+['start','etrade','stash','btc','annuity','annuityRate','k401','k401Rate','wmt401','wmt401Rate','ira','iraRate','p1','p2'].forEach(id => {
   document.getElementById(id).addEventListener('input', render);
 });
 window.addEventListener('resize', render);
