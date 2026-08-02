@@ -1,7 +1,7 @@
-// Trading Dashboard â€” Service Worker
+// Trading Dashboard Ã¢â‚¬â€ Service Worker
 // Cache-first strategy for offline support
 
-const CACHE_NAME = 'trading-dashboard-v3';
+const CACHE_NAME = 'trading-dashboard-v4';
 const ASSETS = [
   './dashboard.html',
   './manifest.json',
