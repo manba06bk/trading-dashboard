@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Portfolio Dashboard — Aug 12, 2026</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+         background: #0d1117; color: #e6edf3; min-height: 100vh; padding: 28px 20px; }
+  h1  { font-size: 1.4rem; font-weight: 600; }
+  .sub { color: #8b949e; font-size: 0.82rem; margin-bottom: 28px; margin-top: 3px; }
+
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+           gap: 14px; margin-bottom: 28px; }
+  .card { background: #161b22; border: 1px solid #30363d; border-radius: 10px; padding: 16px 20px; }
+  .card .lbl { font-size: 0.7rem; color: #8b949e; text-transform: uppercase;
+               letter-spacing: .06em; margin-bottom: 6px; }
+  .card .val { font-size: 1.45rem; font-weight: 700; }
+  .card .sub2 { font-size: 0.72rem; color: #8b949e; margin-top: 3px; }
+  .g { color: #3fb950; } .r { color: #f85149; } .b { color: #58a6ff; } .y { color: #d29922; }
+
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 24px; }
+  .grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; margin-bottom: 24px; }
+  @media (max-width: 800px) { .grid2,.grid3 { grid-template-columns: 1fr; } }
+
+  .box { background: #161b22; border: 1px solid #30363d; border-radius: 10px; padding: 22px; }
+  .box h2 { font-size: 0.72rem; font-weight: 600; color: #8b949e; text-transform: uppercase;
+            letter-spacing: .07em; margin-bottom: 18px; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+  th { color: #8b949e; font-weight: 500; font-size: 0.68rem; text-transform: uppercase;
+       letter-spacing: .05em; padding: 6px 10px; border-bottom: 1px solid #30363d; text-align: left; }
+  td { padding: 7px 10px; border-bottom: 1px solid #1c2128; }
+  tr:last-child td { border-bottom: none; }
+  .mono { font-family: "SF Mono", Consolas, monospace; font-size: 0.78rem; }
+
+  .insight { background: #1c2128; border-left: 3px solid #58a6ff; border-radius: 0 6px 6px 0;
+             padding: 12px 16px; font-size: 0.82rem; line-height: 1.55; margin-bottom: 24px; color: #c9d1d9; }
+  .insight strong { color: #e6edf3; }
+
+  footer { text-align: center; color: #484f58; font-size: 0.72rem; margin-top: 32px; }
+</style>
+</head>
+<body>
+
+<h1>Portfolio Dashboard</h1>
+<p class="sub">Aug 12, 2026 &nbsp;·&nbsp; 3-month wheel strategy review &nbsp;·&nbsp; trading-scripts</p>
+
+<!-- CARDS -->
+<div class="cards">
+  <div class="card">
+    <div class="lbl">Total Equity</div>
+    <div class="val b">$94,949</div>
+    <div class="sub2">Cash + stocks + options</div>
+  </div>
+  <div class="card">
+    <div class="lbl">Cash</div>
+    <div class="val b">$27,418</div>
+    <div class="sub2">28.9% of portfolio</div>
+  </div>
+  <div class="card">
+    <div class="lbl">Stock Positions</div>
+    <div class="val b">$73,396</div>
+    <div class="sub2">WMT · NVDA · F</div>
+  </div>
+  <div class="card">
+    <div class="lbl">Stock Unrealized P&L</div>
+    <div class="val g">+$105</div>
+    <div class="sub2">Net across all 3 stocks</div>
+  </div>
+  <div class="card">
+    <div class="lbl">Option P&L (3M realized)</div>
+    <div class="val r">−$4,047</div>
+    <div class="sub2">Credits − debits on closed trades</div>
+  </div>
+  <div class="card">
+    <div class="lbl">Option Unrealized</div>
+    <div class="val r">−$521</div>
+    <div class="sub2">Current open positions mark</div>
+  </div>
+</div>
+
+<!-- INSIGHT -->
+<div class="insight">
+  <strong>Key finding:</strong> The stocks are essentially flat (+$105 net). The ~$5,000 drop from your $100k high is entirely the wheel strategy drag
+  (−$4,047 realized + −$521 unrealized = −$4,568). WMT is confirmed at <strong>49% of the portfolio</strong> and is down 2.9% from entry
+  — that's your largest single risk. NVDA is your best performer at +10.2% but only 24% of the portfolio.
+  Without any wheels, you'd be at roughly <strong>$99,500</strong> today.
+</div>
+
+<!-- ROW 1: composition pie + scenario bar -->
+<div class="grid2">
+  <div class="box">
+    <h2>Portfolio composition</h2>
+    <canvas id="pieChart" height="240"></canvas>
+  </div>
+  <div class="box">
+    <h2>Buy-and-hold vs actual</h2>
+    <canvas id="scenarioChart" height="240"></canvas>
+  </div>
+</div>
+
+<!-- ROW 2: stock P&L + option P&L -->
+<div class="grid2">
+  <div class="box">
+    <h2>Equity positions — unrealized P&L</h2>
+    <canvas id="stockBar" height="180"></canvas>
+  </div>
+  <div class="box">
+    <h2>Option P&L breakdown (3 months)</h2>
+    <canvas id="optionBar" height="180"></canvas>
+  </div>
+</div>
+
+<!-- STOCK DETAIL TABLE -->
+<div class="box" style="margin-bottom:20px">
+  <h2>Equity position detail</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Symbol</th><th>Shares</th><th>Avg Entry</th><th>Current</th>
+        <th>Market Value</th><th>Unrealized P&L</th><th>% of Portfolio</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td class="mono"><strong>WMT</strong></td>
+        <td>404</td>
+        <td>$119.46</td>
+        <td>$115.95</td>
+        <td>$46,844</td>
+        <td class="r">−$1,418 (−2.9%)</td>
+        <td><strong>49.3%</strong></td>
+      </tr>
+      <tr>
+        <td class="mono"><strong>NVDA</strong></td>
+        <td>100</td>
+        <td>$203.28</td>
+        <td>$224.00</td>
+        <td>$22,400</td>
+        <td class="g">+$2,072 (+10.2%)</td>
+        <td>23.6%</td>
+      </tr>
+      <tr>
+        <td class="mono"><strong>F</strong></td>
+        <td>300</td>
+        <td>$15.67</td>
+        <td>$13.84</td>
+        <td>$4,152</td>
+        <td class="r">−$549 (−11.7%)</td>
+        <td>4.4%</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- OPEN OPTIONS TABLE -->
+<div class="box" style="margin-bottom:20px">
+  <h2>Open option positions</h2>
+  <table>
+    <thead>
+      <tr><th>Symbol</th><th>Side</th><th>Qty</th><th>Avg Entry</th><th>Current</th><th>Market Value</th><th>Unrealized P&L</th></tr>
+    </thead>
+    <tbody id="optTbl"></tbody>
+  </table>
+</div>
+
+<footer>Generated Aug 12, 2026 &nbsp;·&nbsp; trading-scripts/Real/fund_summary.html &nbsp;·&nbsp; auto-updated by trading brain</footer>
+
+<script>
+// ── DATA ─────────────────────────────────────────────────────────────────────
+const totalEquity = 94948.61;
+const cash        = 27417.78;
+const wmt  = { val: 46843.80, cost: 48261.49, upl: -1417.69 };
+const nvda = { val: 22400.00, cost: 20328.43, upl:  2071.57 };
+const f    = { val:  4152.03, cost:  4701.00, upl:  -548.97 };
+const netOptionMktVal = -5865;   // sum of all open option market values
+
+const realizedOptionPnl   = -4047;
+const unrealizedOptionPnl = -521;
+const unrealizedStockPnl  =  105;
+const buyHold             = totalEquity - realizedOptionPnl - unrealizedOptionPnl;  // ~$99,517
+
+const openOptions = [
+  { sym:"WMT260828C00120000",  side:"Short", qty:-4,  entry:0.95, cur:1.93, mv:-772,    upl:-392 },
+  { sym:"NVDA260828C00222500", side:"Short", qty:-1,  entry:6.30, cur:9.30, mv:-930,    upl:-300 },
+  { sym:"F260821C00015000",    side:"Short", qty:-3,  entry:0.04, cur:0.03, mv:-9,      upl:3    },
+  { sym:"QQQ260918P00640000",  side:"Long",  qty:59,  entry:4.17, cur:1.93, mv:11387,   upl:-13216 },
+  { sym:"QQQ260918P00645000",  side:"Short", qty:-59, entry:4.57, cur:2.18, mv:-12862,  upl:14101  },
+  { sym:"SPY260918P00708000",  side:"Long",  qty:27,  entry:2.57, cur:1.75, mv:4725,    upl:-2214  },
+  { sym:"SPY260918P00713000",  side:"Short", qty:-27, entry:2.84, cur:1.97, mv:-5319,   upl:2349   },
+  { sym:"TLT260918C00085000",  side:"Short", qty:-42, entry:0.38, cur:0.21, mv:-882,    upl:714    },
+  { sym:"TLT260918C00086000",  side:"Long",  qty:42,  entry:0.23, cur:0.11, mv:462,     upl:-504   },
+  { sym:"USO260911P00118000",  side:"Long",  qty:9,   entry:3.41, cur:2.45, mv:2205,    upl:-864   },
+  { sym:"USO260911P00120000",  side:"Short", qty:-9,  entry:4.08, cur:4.30, mv:-3870,   upl:-198   },
+];
+
+// ── PIE: Portfolio composition ────────────────────────────────────────────────
+new Chart(document.getElementById('pieChart'), {
+  type: 'doughnut',
+  data: {
+    labels: ['WMT (49%)', 'NVDA (24%)', 'Cash (29%)', 'F (4%)'],
+    datasets: [{
+      data: [wmt.val, nvda.val, cash, f.val],
+      backgroundColor: ['#1f6feb', '#3fb950', '#58a6ff', '#d29922'],
+      borderColor: '#161b22', borderWidth: 3, hoverOffset: 8,
+    }]
+  },
+  options: {
+    cutout: '58%',
+    plugins: {
+      legend: { position: 'bottom', labels: { color:'#8b949e', padding:14, font:{size:11} } },
+      tooltip: { callbacks: { label: c => ` $${c.parsed.toLocaleString()}` } }
+    }
+  }
+});
+
+// ── BAR: Scenario comparison ──────────────────────────────────────────────────
+new Chart(document.getElementById('scenarioChart'), {
+  type: 'bar',
+  data: {
+    labels: ['Buy-and-hold\n(no wheels)', 'Actual\n(with wheels)'],
+    datasets: [{
+      data: [buyHold, totalEquity],
+      backgroundColor: ['#3fb950', '#58a6ff'],
+      borderRadius: 6,
+    }]
+  },
+  options: {
+    plugins: {
+      legend: { display: false },
+      tooltip: { callbacks: { label: c => ` $${c.parsed.y.toLocaleString()}` } }
+    },
+    scales: {
+      y: {
+        min: 88000,
+        grid: { color: '#21262d' },
+        ticks: { color: '#8b949e', callback: v => '$' + (v/1000).toFixed(0) + 'k' }
+      },
+      x: { grid: { display: false }, ticks: { color: '#c9d1d9', font: { size: 11 } } }
+    }
+  }
+});
+
+// ── BAR: Stock unrealized P&L ─────────────────────────────────────────────────
+new Chart(document.getElementById('stockBar'), {
+  type: 'bar',
+  data: {
+    labels: ['WMT', 'NVDA', 'F'],
+    datasets: [{
+      label: 'Unrealized P&L',
+      data: [wmt.upl, nvda.upl, f.upl],
+      backgroundColor: [wmt.upl >= 0 ? '#3fb950':'#f85149',
+                        nvda.upl >= 0 ? '#3fb950':'#f85149',
+                        f.upl   >= 0 ? '#3fb950':'#f85149'],
+      borderRadius: 5,
+    }]
+  },
+  options: {
+    plugins: { legend: { display: false },
+      tooltip: { callbacks: { label: c => ` $${c.parsed.y.toLocaleString()}` } }
+    },
+    scales: {
+      y: { grid: { color: '#21262d' }, ticks: { color: '#8b949e',
+           callback: v => '$' + (v >= 0 ? '' : '') + v.toLocaleString() } },
+      x: { grid: { display: false }, ticks: { color: '#c9d1d9' } }
+    }
+  }
+});
+
+// ── BAR: Option P&L breakdown ─────────────────────────────────────────────────
+new Chart(document.getElementById('optionBar'), {
+  type: 'bar',
+  data: {
+    labels: ['Realized P&L\n(3M closed)', 'Unrealized\n(open positions)', 'Total\noption drag'],
+    datasets: [{
+      data: [realizedOptionPnl, unrealizedOptionPnl, realizedOptionPnl + unrealizedOptionPnl],
+      backgroundColor: ['#f85149', '#d29922', '#f85149'],
+      borderRadius: 5,
+    }]
+  },
+  options: {
+    plugins: { legend: { display: false },
+      tooltip: { callbacks: { label: c => ` $${c.parsed.y.toLocaleString()}` } }
+    },
+    scales: {
+      y: { grid: { color: '#21262d' }, ticks: { color: '#8b949e',
+           callback: v => '$' + v.toLocaleString() } },
+      x: { grid: { display: false }, ticks: { color: '#c9d1d9', font: { size: 10 } } }
+    }
+  }
+});
+
+// ── Open options table ────────────────────────────────────────────────────────
+const tb = document.getElementById('optTbl');
+for (const p of openOptions) {
+  const cls = p.upl >= 0 ? 'g' : 'r';
+  const sign = p.upl >= 0 ? '+' : '−';
+  tb.innerHTML += `
+    <tr>
+      <td class="mono">${p.sym}</td>
+      <td style="color:${p.side==='Short'?'#d29922':'#58a6ff'}">${p.side}</td>
+      <td>${Math.abs(p.qty)}</td>
+      <td>$${p.entry.toFixed(2)}</td>
+      <td>$${p.cur.toFixed(2)}</td>
+      <td>$${Math.abs(p.mv).toLocaleString()}</td>
+      <td class="${cls}">${sign}$${Math.abs(p.upl).toLocaleString()}</td>
+    </tr>`;
+}
+</script>
+</body>
+</html>
