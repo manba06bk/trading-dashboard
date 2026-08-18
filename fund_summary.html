@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Portfolio Dashboard — Aug 12, 2026</title>
+<title>Portfolio Dashboard — Aug 18, 2026</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -167,7 +167,25 @@
   </table>
 </div>
 
-<footer>Generated Aug 12, 2026 &nbsp;·&nbsp; trading-scripts/Real/fund_summary.html &nbsp;·&nbsp; auto-updated by trading brain</footer>
+<!-- iOS home-screen prompt -->
+<div id="iosPrompt" style="display:none;position:fixed;bottom:20px;left:50%;transform:translateX(-50%);
+  background:#1c2128;border:1px solid #30363d;border-radius:12px;padding:14px 18px;
+  font-size:0.82rem;color:#e6edf3;text-align:center;z-index:999;max-width:300px;box-shadow:0 4px 20px rgba(0,0,0,.5)">
+  📌 <strong>Add to Home Screen</strong><br>
+  <span style="color:#8b949e">Tap <strong>⬆ Share</strong> → <strong>Add to Home Screen</strong></span><br>
+  <button onclick="document.getElementById('iosPrompt').style.display='none'"
+    style="margin-top:10px;background:#21262d;border:1px solid #30363d;color:#e6edf3;
+    border-radius:6px;padding:5px 14px;cursor:pointer;font-size:0.8rem">Dismiss</button>
+</div>
+<script>
+// Show iOS prompt if on iPhone/iPad and not already installed as PWA
+if (/iphone|ipad|ipod/i.test(navigator.userAgent) &&
+    !window.navigator.standalone) {
+  document.getElementById('iosPrompt').style.display = 'block';
+}
+</script>
+
+<footer>Generated Aug 18, 2026 &nbsp;·&nbsp; trading-scripts/Real/fund_summary.html &nbsp;·&nbsp; auto-updated by trading brain</footer>
 
 <script>
 // ── DATA ─────────────────────────────────────────────────────────────────────
